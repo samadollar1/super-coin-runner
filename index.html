@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wild Chase Runner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #0a0e27;
+            --bg-end: #1a1f3a;
+            --primary: #ff006e;
+            --secondary: #00f5ff;
+            --accent: #ffbe0b;
+            --success: #06ffa5;
+            --text: #ffffff;
+            --overlay: rgba(10, 14, 39, 0.95);
+        }
+
+        .dark {
+            --bg-start: #0a0e27;
+            --bg-end: #1a1f3a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            color: var(--text);
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(255, 0, 110, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(0, 245, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            max-width: 100vw;
+            max-height: 100vh;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(180deg, #2d3561 0%, #1a1f3a 100%);
+            cursor: pointer;
+        }
+
+        #menuScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--overlay);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(48px, 10vw, 96px);
+            letter-spacing: 6px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 0, 110, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px rgba(255, 0, 110, 0.5)); }
+            to { filter: drop-shadow(0 0 20px rgba(0, 245, 255, 0.5)); }
+        }
+
+        .subtitle {
+            font-size: clamp(14px, 3vw, 18px);
+            color: var(--secondary);
+            letter-spacing: 3px;
+            opacity: 0.8;
+        }
+
+        .character-select {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .character-option {
+            width: 80px;
+            height: 80px;
+            border: 3px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .character-option:hover {
+            transform: scale(1.1) translateY(-5px);
+            border-color: var(--secondary);
+            box-shadow: 0 10px 30px rgba(0, 245, 255, 0.4);
+        }
+
+        .character-option.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(255, 0, 110, 0.6);
+            transform: scale(1.15);
+        }
+
+        .character-emoji {
+            font-size: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(16px, 3vw, 22px);
+            font-weight: 700;
+            padding: 16px 48px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--text);
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(255, 0, 110, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 245, 255, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: clamp(18px, 4vw, 28px);
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(255, 190, 11, 0.5);
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: 2px solid var(--accent);
+        }
+
+        .final-score {
+            font-size: clamp(32px, 6vw, 48px);
+            color: var(--success);
+            font-weight: 900;
+            text-shadow: 0 0 20px rgba(6, 255, 165, 0.5);
+        }
+
+        .instructions {
+            font-size: clamp(12px, 2.5vw, 16px);
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            max-width: 90%;
+            line-height: 1.6;
+        }
+
+        .warning-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            animation: flash 0.5s ease;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            #gameContainer {
+                border-radius: 0;
+            }
+
+            .character-option {
+                width: 60px;
+                height: 60px;
+            }
+
+            .character-emoji {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="scoreDisplay" class="score-display hidden">
+            SCORE: <span id="scoreValue">0</span>
+        </div>
+
+        <div id="menuScreen">
+            <h1>WILD CHASE</h1>
+            <p class="subtitle">ENDLESS RUNNER</p>
+
+            <div style="text-align: center;">
+                <p style="margin-bottom: 15px; color: var(--secondary); font-size: clamp(14px, 3vw, 18px);">SELECT YOUR CHARACTER</p>
+                <div class="character-select">
+                    <div class="character-option selected" data-char="🏃">
+                        <div class="character-emoji">🏃</div>
+                    </div>
+                    <div class="character-option" data-char="🚴">
+                        <div class="character-emoji">🚴</div>
+                    </div>
+                    <div class="character-option" data-char="🏂">
+                        <div class="character-emoji">🏂</div>
+                    </div>
+                    <div class="character-option" data-char="⛷">
+                        <div class="character-emoji">⛷</div>
+                    </div>
+                    <div class="character-option" data-char="🏄">
+                        <div class="character-emoji">🏄</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn" id="startBtn">START GAME</button>
+
+            <div class="instructions">
+                <strong>CONTROLS:</strong><br>
+                SPACE / UP / TAP to Jump<br>
+                Avoid obstacles & survive the wild chase!<br>
+                Collect power-ups to slow down!
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="hidden">
+            <h1>GAME OVER</h1>
+            <div class="final-score">SCORE: <span id="finalScore">0</span></div>
+            <button class="btn" id="restartBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menuScreen = document.getElementById('menuScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const scoreValue = document.getElementById('scoreValue');
+        const finalScore = document.getElementById('finalScore');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Responsive canvas
+        function resizeCanvas() {
+            const maxWidth = window.innerWidth;
+            const maxHeight = window.innerHeight;
+            const aspectRatio = 16 / 9;
+
+            let width = maxWidth;
+            let height = width / aspectRatio;
+
+            if (height > maxHeight) {
+                height = maxHeight;
+                width = height * aspectRatio;
+            }
+
+            canvas.width = Math.min(width, 1200);
+            canvas.height = Math.min(height, 675);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Character selection
+        let selectedCharacter = '🏃';
+        document.querySelectorAll('.character-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.character-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedCharacter = this.dataset.char;
+            });
+        });
+
+        // Game state
+        let gameState = {
+            isPlaying: false,
+            score: 0,
+            speed: 5,
+            gravity: 0.8,
+            player: null,
+            obstacles: [],
+            powerups: [],
+            chaser: null,
+            isChasing: false,
+            chaseTimer: 0,
+            gameStartTime: 0,
+            keys: {},
+            frameCount: 0
+        };
+
+        // Player class
+        class Player {
+            constructor() {
+                this.width = canvas.width * 0.06;
+                this.height = canvas.width * 0.06;
+                this.x = canvas.width * 0.15;
+                this.y = canvas.height * 0.7;
+                this.dy = 0;
+                this.jumpPower = -canvas.height * 0.025;
+                this.grounded = false;
+                this.groundY = canvas.height * 0.7;
+                this.char = selectedCharacter;
+                this.rotation = 0;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(this.rotation);
+                ctx.font = ${this.width}px Arial;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.char, 0, 0);
+                ctx.restore();
+            }
+
+            update() {
+                // Apply gravity
+                this.dy += gameState.gravity;
+                this.y += this.dy;
+
+                // Ground collision
+                if (this.y >= this.groundY) {
+                    this.y = this.groundY;
+                    this.dy = 0;
+                    this.grounded = true;
+                    this.rotation = 0;
+                } else {
+                    this.grounded = false;
+                    this.rotation += 0.1;
+                }
+            }
+
+            jump() {
+                if (this.grounded) {
+                    this.dy = this.jumpPower;
+                    this.grounded = false;
+                }
+            }
+        }
+
+        // Obstacle class
+        class Obstacle {
+            constructor(type) {
+                this.type = type; // 'car', 'bus', 'barrier'
+                this.width = type === 'bus' ? canvas.width * 0.15 : canvas.width * 0.1;
+                this.height = type === 'bus' ? canvas.width * 0.08 : canvas.width * 0.06;
+                this.x = canvas.width;
+                this.y = canvas.height * 0.7 + canvas.width * 0.06 - this.height;
+                this.speed = type === 'barrier' ? 0 : gameState.speed * (0.8 + Math.random() * 0.4);
+                this.emoji = type === 'car' ? '🚗' : type === 'bus' ? '🚌' : '🚧';
+                this.passed = false;
+            }
+
+            draw() {
+                ctx.font = ${this.height}px Arial;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, this.x + this.width / 2, this.y + this.height / 2);
+            }
+
+            update() {
+                this.x -= this.speed;
+            }
+
+            collidesWith(player) {
+                return player.x < this.x + this.width * 0.7 &&
+                       player.x + player.width * 0.7 > this.x &&
+                       player.y < this.y + this.height * 0.7 &&
+                       player.y + player.height * 0.7 > this.y;
+            }
+        }
+
+        // Powerup class (slows runner)
+        class Powerup {
+            constructor() {
+                this.width = canvas.width * 0.05;
+                this.height = canvas.width * 0.05;
+                this.x = canvas.width;
+                this.y = canvas.height * 0.5 + Math.random() * canvas.height * 0.15;
+                this.speed = gameState.speed;
+                this.emoji = '⭐';
+                this.collected = false;
+            }
+
+            draw() {
+                const pulse = Math.sin(gameState.frameCount * 0.1) * 0.2 + 1;
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.scale(pulse, pulse);
+                ctx.font = ${this.width}px Arial;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, 0, 0);
+                ctx.restore();
+            }
+
+            update() {
+                this.x -= this.speed;
+            }
+
+            collidesWith(player) {
+                return player.x < this.x + this.width &&
+                       player.x + player.width > this.x &&
+                       player.y < this.y + this.height &&
+                       player.y + player.height > this.y;
+            }
+        }
+
+        // Chaser class (scary animal)
+        class Chaser {
+            constructor() {
+                this.width = canvas.width * 0.12;
+                this.height = canvas.width * 0.12;
+                this.x = -this.width;
+                this.y = canvas.height * 0.7;
+                this.targetX = canvas.width * 0.05;
+                this.speed = canvas.width * 0.015;
+                this.emoji = '🦁';
+                this.isActive = false;
+            }
+
+            draw() {
+                if (!this.isActive) return;
+
+                // Shadow effect
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#000';
+                ctx.fillRect(this.x, this.y + this.height, this.width, 10);
+                ctx.restore();
+
+                // Chaser
+                const bounce = Math.sin(gameState.frameCount * 0.2) * 5;
+                ctx.font = ${this.width}px Arial;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, this.x + this.width / 2, this.y + this.height / 2 + bounce);
+            }
+
+            update() {
+                if (!this.isActive) return;
+
+                if (this.x < this.targetX) {
+                    this.x += this.speed;
+                }
+            }
+
+            activate() {
+                this.isActive = true;
+                this.x = -this.width;
+            }
+
+            deactivate() {
+                this.isActive = false;
+                this.x = -this.width;
+            }
+
+            reset() {
+                this.x = -this.width;
+            }
+        }
+
+        // Initialize game
+        function initGame() {
+            gameState.player = new Player();
+            gameState.chaser = new Chaser();
+            gameState.obstacles = [];
+            gameState.powerups = [];
+            gameState.score = 0;
+            gameState.speed = 5;
+            gameState.isPlaying = true;
+            gameState.isChasing = false;
+            gameState.chaseTimer = 0;
+            gameState.gameStartTime = Date.now();
+            gameState.frameCount = 0;
+
+            // Initial chase at game start
+            setTimeout(() => {
+                startChase();
+            }, 100);
+        }
+
+        // Start chase sequence
+        function startChase() {
+            gameState.isChasing = true;
+            gameState.chaseTimer = 180; // 3 seconds at 60fps
+            gameState.chaser.activate();
+
+            // Add warning flash
+            const flash = document.createElement('div');
+            flash.className = 'warning-flash';
+            document.getElementById('gameContainer').appendChild(flash);
+            setTimeout(() => flash.remove(), 500);
+        }
+
+        // Spawn obstacles
+        function spawnObstacle() {
+            const types = ['car', 'bus', 'barrier'];
+            const weights = [0.5, 0.3, 0.2];
+
+            let random = Math.random();
+            let type;
+
+            if (random < weights[0]) type = 'car';
+            else if (random < weights[0] + weights[1]) type = 'bus';
+            else type = 'barrier';
+
+            gameState.obstacles.push(new Obstacle(type));
+        }
+
+        // Spawn powerup
+        function spawnPowerup() {
+            gameState.powerups.push(new Powerup());
+        }
+
+        // Draw background
+        function drawBackground() {
+            // Sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#2d3561');
+            gradient.addColorStop(1, '#1a1f3a');
+            ctx.fillStyle = gradient;
+            ctx
